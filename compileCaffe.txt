@@ -1,0 +1,49 @@
+** 1. install dependency **
+sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler
+sudo apt-get install --no-install-recommends libboost-all-dev
+
+** 2. install CUDA **
+
+** 3. install dependency for ubuntu 16.04 **
+sudo apt-get install libatlas-base-dev
+sudo apt-get install libgflags-dev libgoogle-glog-dev liblmdb-dev
+# add python dependency
+cd $CAFFE_ROOT/python
+for req in $(cat requirements.txt); do pip install $req; done
+
+** 4. edit configuration file **
+cd $CAFFE_ROOT
+cp Makefile.config.example Makefile.config
+# edit Makefile.config
+# do not use python3, although compilation can be passed, but officially it is not recomanded.
+gedit Makefile.config
+
+# uncomment line63: 
+MATLAB_DIR := /home/xushen/.local/MATLAB/R2015a
+
+# uncomment line91: 
+WITH_PYTHON_LAYER := 1
+
+# add two lines at the end
+INCLUDE_DIRS := $(PYTHON_INCLUDE) /usr/local/include /usr/include/hdf5/serial/
+LIBRARIES += glog gflags protobuf boost_system boost_filesystem m hdf5_serial_hl hdf5_serial
+
+** 5. remove matlab mex bugs **
+# synbolic links libstdc++.so and some opencv libs should be changed. using libs in system can be OK
+cd $MATLAB_ROOT/bin/glnxa64
+mv libopencv_imgproc.so.2.4 libopencv_imgproc.so.2.4.bak
+mv libopencv_highgui.so.2.4 libopencv_highgui.so.2.4.bak
+mv libopencv_core.so.2.4 libopencv_core.so.2.4.bak
+# some people recommand adding export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 
+# and export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:/usr/local/cuda/lib64
+# however I don't need this
+
+** 6. compilation (3 threads) **
+make -j3 && make -j3 test && make -j3 runtest && make pycaffe && make matcaffe
+make pytest && make mattest
+
+** 7. add python and matlab include links **
+cd ~/.local/lib/python2.7/dist-packages
+ln -s $CAFFE_ROOT/python/caffe caffe
+# open matlab and use addpath function to add $CAFFE_ROOT/matlab
+
